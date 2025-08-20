@@ -15,6 +15,9 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.event.player.PlayerGameModeChangeEvent;
+import org.bukkit.GameMode;
+
 
 
 import java.io.OutputStream;
@@ -85,17 +88,34 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent e) {
         Player player = e.getPlayer();
-        String from = e.getFrom().getName();   // previous world name
-        String to = player.getWorld().getName();    // new world name
+        String from = formatWorldName(e.getFrom().getName());   // previous world name
+        String to = formatWorldName(player.getWorld().getName());   // new world name
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
         sendDiscord("🌍 " + player.getName() + " az  " + from + " be " + to + " raft! " + "[" + time + "] ");
+    }
+    private String formatWorldName(String world) {
+        switch (world) {
+            case "world": return "Overworld";
+            case "world_nether": return "Nether";
+            case "world_the_end": return "The End";
+            default: return world; // fallback for custom worlds
+        }
     }
 
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         sendDiscord("⌨️ " + e.getPlayer().getName() + " Az: " + e.getMessage() + " estefade kard! " + "[" + time + "] ");
+    }
+    @EventHandler
+    public void onGamemodeChange(PlayerGameModeChangeEvent e) {
+        Player player = e.getPlayer();
+
+        String from = player.getGameMode().toString();   // old gamemode
+        String to = e.getNewGameMode().toString();  // new gamemode
+
+        sendDiscord("🎮 " + player.getName() + " gamemode khod ra az " + from + " be " + to + " Switch Kard! ");
     }
 
     @EventHandler
