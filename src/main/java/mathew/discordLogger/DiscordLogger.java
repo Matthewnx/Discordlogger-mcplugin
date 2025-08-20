@@ -38,13 +38,13 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         webhookUrl = getConfig().getString("webhook");
         Bukkit.getPluginManager().registerEvents(this, this);
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("🟢 Server Run Shod!" + "[" + time + "] ");
+        sendDiscord("🟢 Server Run Shod!" + " [" + time + "] ");
     }
 
     @Override
     public void onDisable() {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("🔴 Server off Shod!" + "[" + time + "] ");
+        sendDiscord("🔴 Server off Shod!" + " [" + time + "] ");
     }
 
     private void sendDiscord(String message) {
@@ -67,22 +67,26 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         });
     }
 
+    private String Bold(String message) {
+        return "**" + message + "**";
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("✅ " + e.getPlayer().getName() + " Be Server Join shod!" +  "[" + time + "] ");
+        sendDiscord("✅ " + Bold(e.getPlayer().getName()) + " Be Server Join shod!" +  " [" + time + "] ");
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("❌ " + e.getPlayer().getName() + " az server left dad! " +  "[" + time + "] ");
+        sendDiscord("❌ " + Bold(e.getPlayer().getName()) + " az server left dad! " +  " [" + time + "] ");
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("☠️ " + e.getDeathMessage() + "[" + time + "] ");
+        sendDiscord("☠️ " + Bold(e.getDeathMessage()) + " [" + time + "] ");
     }
 
     @EventHandler
@@ -92,7 +96,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String to = formatWorldName(player.getWorld().getName());   // new world name
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-        sendDiscord("🌍 " + player.getName() + " az  " + from + " be " + to + " raft! " + "[" + time + "] ");
+        sendDiscord("🌍 " + Bold(player.getName()) + " az  " + from + " be " + to + " raft! " + " [" + time + "] ");
     }
     private String formatWorldName(String world) {
         switch (world) {
@@ -106,7 +110,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("⌨️ " + e.getPlayer().getName() + " Az: " + e.getMessage() + " estefade kard! " + "[" + time + "] ");
+        sendDiscord("⌨️ " + Bold(e.getPlayer().getName()) + " Az: " + e.getMessage() + " estefade kard! " + " [" + time + "] ");
     }
     @EventHandler
     public void onGamemodeChange(PlayerGameModeChangeEvent e) {
@@ -115,11 +119,12 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String from = player.getGameMode().toString();   // old gamemode
         String to = e.getNewGameMode().toString();  // new gamemode
 
-        sendDiscord("🎮 " + player.getName() + " gamemode khod ra az " + from + " be " + to + " Switch Kard! ");
+        sendDiscord("🎮 " + Bold(player.getName()) + " gamemode khod ra az " + from + " be " + to + " Switch Kard! ");
     }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent e) {
+        Player player = e.getPlayer();
         //bock attibutes
         Location loc = e.getBlock().getLocation();
         //location of block
@@ -127,16 +132,15 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String world = loc.getWorld().getName(); // world name
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("⛏️ " + e.getPlayer().getName() + ", " +  e.getBlock().getType() +"  Ra Dar " + coords +", " + world + " Mine kard! " +  "[" + time + "] ");
+        sendDiscord("⛏️ " + Bold(player.getName()) + ", " +  e.getBlock().getType() +"  Ra Dar " + coords +", " + world + " Mine kard! " +  " [" + time + "] ");
     }
 
     @EventHandler
     public void onCraft(CraftItemEvent e) {
-        if (e.getWhoClicked() instanceof org.bukkit.entity.Player p) {
+        if (e.getWhoClicked() instanceof org.bukkit.entity.Player player) {
 
             int amount = e.getRecipe().getResult().getAmount();
             if (e.isShiftClick()) {
-                int maxCraftable = e.getInventory().getMaxStackSize();
                 int resultAmount = e.getRecipe().getResult().getAmount();
                 int possibleCrafts = Integer.MAX_VALUE;
 
@@ -150,7 +154,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             //crafted item properties
             String item = e.getRecipe().getResult().getType().toString();
             String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            sendDiscord("⚒️ " + amount + ", " + item + " Tavasot " + p.getName() + " Craft Shod! "  + "[" + time + "] ");
+            sendDiscord("⚒️ " + amount + ", " + item + " Tavasot " + Bold(player.getName()) + " Craft Shod! "  + " [" + time + "] ");
         }
     }
 
@@ -166,12 +170,12 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         Location loc = player.getLocation();
         String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
-        sendDiscord("📥 " + player.getName()  +", " + amount + "x " + item + " Ra Dar " + coords + " bardasht!" + "[" + time + "] ");
+        sendDiscord("📥 " + Bold(player.getName())  +", " + amount + "x " + item + " Ra Dar " + coords + " bardasht!" + " [" + time + "] ");
     }
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         //pick item from inventory or anyting execpt ground
-        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (!(e.getWhoClicked() instanceof Player player)) return;
 
         if (e.getAction() == InventoryAction.PICKUP_ALL ||
                 e.getAction() == InventoryAction.PICKUP_SOME ||
@@ -187,10 +191,10 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             String source = e.getInventory().getType().toString(); // CHEST, BARREL, FURNACE, etc.
 
             //calculate exact position of player at doing this event
-            Location loc = p.getLocation();
+            Location loc = player.getLocation();
             String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
-            sendDiscord("📥 " + p.getName() + " took " + amount + "x " + name + " from " + source + " at " + coords);
+            sendDiscord("📥 " + Bold(player.getName()) + ", " + amount + "x " + name + " ra  az " + source + " bardasht dar " + coords);
         }
     }
 
@@ -209,13 +213,13 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         Location loc = player.getLocation();
         String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
-        sendDiscord("📥 " + player.getName()  +", " + amount + "x " + item + " Ra Dar " + coords + " drop kard!" + "[" + time + "] ");
+        sendDiscord("📥 " + Bold(player.getName())  +", " + amount + "x " + item + " Ra Dar " + coords + " drop kard!" + " [" + time + "] ");
     }
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         String player = e.getPlayer().getName();
         String msg = e.getMessage();
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("[" + time + "] " + " 💬 " + player + ": " + msg);
+        sendDiscord(" [" + time + "] " + " 💬 " + Bold(player) + ": " + msg);
     }
 }
