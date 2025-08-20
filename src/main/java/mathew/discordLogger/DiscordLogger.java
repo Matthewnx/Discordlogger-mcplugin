@@ -90,14 +90,25 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent e) {
+        //bock attibutes
+        Location loc = e.getBlock().getLocation();
+        //location of block
+        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+        String world = loc.getWorld().getName(); // world name
+
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("⛏️ " + e.getPlayer().getName() + " broke " + e.getBlock().getType() + "[" + time + "] ");
+        sendDiscord("⛏️ " + e.getPlayer().getName() + ", " +  e.getBlock().getType() +"  Ra Dar " + coords +", " + world + " Mine kard! " +  "[" + time + "] ");
     }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent e) {
+        //bock attibutes
+        Location loc = e.getBlock().getLocation();
+        //location of block
+        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+        String world = loc.getWorld().getName(); // world name
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("🧱 " + e.getPlayer().getName() + " placed " + e.getBlock().getType() + "[" + time + "] ");
+        sendDiscord("⛏️ " + e.getPlayer().getName() + ", " +  e.getBlock().getType() +"  Ra Dar " + coords +", " + world + " gharar dad! " +  "[" + time + "] ");
     }
 
     @EventHandler
@@ -117,6 +128,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                 }
                 amount = possibleCrafts * resultAmount;
             }
+            //crafted item properties
             String item = e.getRecipe().getResult().getType().toString();
             String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
             sendDiscord("⚒️ " + amount + ", " + item + " Tavasot " + p.getName() + " Craft Shod! "  + "[" + time + "] ");
@@ -139,6 +151,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     }
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
+        //pick item from inventory or anyting execpt ground
         if (!(e.getWhoClicked() instanceof Player p)) return;
 
         if (e.getAction() == InventoryAction.PICKUP_ALL ||
@@ -164,11 +177,16 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent e) {
+
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         Player player = e.getPlayer();
+
+        //item artibutes
         ItemStack stack = e.getItemDrop().getItemStack();
         int amount = stack.getAmount();
         String item = stack.getType().toString();
+
+        //calculate exact position of player at doing this event
         Location loc = player.getLocation();
         String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
