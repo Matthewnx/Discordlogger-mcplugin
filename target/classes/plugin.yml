@@ -1,0 +1,7 @@
+name: DiscordLogger
+version: '1.0-release'
+main: mathew.discordLogger.DiscordLogger
+api-version: '1.21'
+authors: [ matthewnx ]
+description: log minecraft events to discord
+website: https://github.com/matthewnx
