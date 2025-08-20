@@ -83,6 +83,16 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     }
 
     @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent e) {
+        Player player = e.getPlayer();
+        String from = e.getFrom().getName();   // previous world name
+        String to = player.getWorld().getName();    // new world name
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        sendDiscord("🌍 " + player.getName() + " az  " + from + " be " + to + " raft! " + "[" + time + "] ");
+    }
+
+    @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         sendDiscord("⌨️ " + e.getPlayer().getName() + " Az: " + e.getMessage() + " estefade kard! " + "[" + time + "] ");
