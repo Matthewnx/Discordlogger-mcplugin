@@ -101,17 +101,6 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onBlockPlace(BlockPlaceEvent e) {
-        //bock attibutes
-        Location loc = e.getBlock().getLocation();
-        //location of block
-        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
-        String world = loc.getWorld().getName(); // world name
-        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("⛏️ " + e.getPlayer().getName() + ", " +  e.getBlock().getType() +"  Ra Dar " + coords +", " + world + " gharar dad! " +  "[" + time + "] ");
-    }
-
-    @EventHandler
     public void onCraft(CraftItemEvent e) {
         if (e.getWhoClicked() instanceof org.bukkit.entity.Player p) {
 
