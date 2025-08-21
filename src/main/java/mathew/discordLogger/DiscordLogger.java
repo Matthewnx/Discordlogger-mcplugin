@@ -40,21 +40,19 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     private final Map<String, String> webhooks = new HashMap<>();
 
     public void queueDiscord(String eventType, String message) {
-        messageBuffer.computeIfAbsent(eventType, k -> Collections.synchronizedList(new ArrayList<>()))
-                .add(message);
+        messageBuffer.computeIfAbsent(eventType, k -> new ArrayList<>()).add(message);
     }
     public void startFlushTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
             for (Map.Entry<String, List<String>> entry : messageBuffer.entrySet()) {
-                List<String> msgs = new ArrayList<>(entry.getValue()); // copy
-                entry.getValue().clear(); // clear buffer immediately
-
+                List<String> msgs = entry.getValue();
                 if (!msgs.isEmpty()) {
                     String combined = String.join("\n", msgs);
                     sendDiscord(entry.getKey(), combined);
+                    msgs.clear();
                 }
             }
-        },  20L, 40L); // still 2s flush, but async
+        }, 20L, 40L); // runs every 10s
     }
     public void flushAll() {
         // snapshot + clear under lock to avoid ConcurrentModification
