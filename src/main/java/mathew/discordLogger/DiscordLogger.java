@@ -30,31 +30,31 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 //main class
 public class DiscordLogger extends JavaPlugin implements Listener {
 
-    private final Map<String, List<String>> messageBuffer = new HashMap<>();
+    private final Map<String, List<String>> messageBuffer = new ConcurrentHashMap<>();
     private final Map<String, String> webhooks = new HashMap<>();
 
     public void queueDiscord(String eventType, String message) {
-        messageBuffer.computeIfAbsent(eventType, k -> new ArrayList<>()).add(message);
+        messageBuffer.computeIfAbsent(eventType, k -> Collections.synchronizedList(new ArrayList<>()))
+                .add(message);
     }
     public void startFlushTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
             for (Map.Entry<String, List<String>> entry : messageBuffer.entrySet()) {
-                List<String> msgs = entry.getValue();
+                List<String> msgs = new ArrayList<>(entry.getValue()); // copy
+                entry.getValue().clear(); // clear buffer immediately
+
                 if (!msgs.isEmpty()) {
                     String combined = String.join("\n", msgs);
                     sendDiscord(entry.getKey(), combined);
-                    msgs.clear();
                 }
             }
-        }, 20L, 40L); //2s interval
+        }, 20L, 40L); // still 2s flush, but async
     }
     public void flushAll() {
         // snapshot + clear under lock to avoid ConcurrentModification
