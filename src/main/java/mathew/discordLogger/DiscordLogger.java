@@ -54,7 +54,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                     sendDiscord(entry.getKey(), combined);
                 }
             }
-        },  20L, 200L); // still 2s flush, but async
+        },  20L, 40L); // still 2s flush, but async
     }
     public void flushAll() {
         // snapshot + clear under lock to avoid ConcurrentModification
