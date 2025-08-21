@@ -178,11 +178,12 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     @EventHandler
     public void onGamemodeChange(PlayerGameModeChangeEvent e) {
         Player player = e.getPlayer();
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
         String from = player.getGameMode().toString();   // old gamemode
         String to = e.getNewGameMode().toString();  // new gamemode
 
-        queueDiscord("gamemode","🎮 " + Bold(player.getName()) + " gamemode khod ra az " + from + " be " + to + " Switch Kard! ");
+        queueDiscord("gamemode","🎮 " + Bold(player.getName()) + " gamemode khod ra az " + from + " be " + to + " Switch Kard! " +  " [" + time + "] ");
     }
 
     @EventHandler
