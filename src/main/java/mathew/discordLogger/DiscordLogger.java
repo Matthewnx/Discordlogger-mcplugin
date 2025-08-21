@@ -30,56 +30,102 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+//main class
 public class DiscordLogger extends JavaPlugin implements Listener {
 
-    private Map<String, String> webhooks = new HashMap<>();
+    private final Map<String, List<String>> messageBuffer = new HashMap<>();
+    private final Map<String, String> webhooks = new HashMap<>();
+
+    public void queueDiscord(String eventType, String message) {
+        messageBuffer.computeIfAbsent(eventType, k -> new ArrayList<>()).add(message);
+    }
+    public void startFlushTask() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            for (Map.Entry<String, List<String>> entry : messageBuffer.entrySet()) {
+                List<String> msgs = entry.getValue();
+                if (!msgs.isEmpty()) {
+                    String combined = String.join("\n", msgs);
+                    sendDiscord(entry.getKey(), combined);
+                    msgs.clear();
+                }
+            }
+        }, 20L, 40L); //2s interval
+    }
+    public void flushAll() {
+        // snapshot + clear under lock to avoid ConcurrentModification
+        Map<String, String> toSend = new HashMap<>();
+        synchronized (messageBuffer) {
+            for (Map.Entry<String, List<String>> entry : messageBuffer.entrySet()) {
+                List<String> msgs = entry.getValue();
+                if (msgs != null && !msgs.isEmpty()) {
+                    toSend.put(entry.getKey(), String.join("\n", msgs));
+                    msgs.clear();
+                }
+            }
+        }
+        // send outside the lock
+        for (Map.Entry<String, String> e : toSend.entrySet()) {
+            try {
+                sendDiscord(e.getKey(), e.getValue());
+            } catch (Exception ignored) {}
+        }
+    }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+
+        // load webhooks from config
         FileConfiguration config = getConfig();
         ConfigurationSection section = config.getConfigurationSection("webhooks");
-        if(section != null) {
+        if (section != null) {
             for (String key : section.getKeys(false)) {
                 webhooks.put(key, section.getString(key));
             }
         }
+
+        // register events
         Bukkit.getPluginManager().registerEvents(this, this);
+
+        // start the async flushing task
+        startFlushTask();
+
+        // send startup log
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("svstatus","🟢 Server Run Shod!" + " [" + time + "] ");
+        queueDiscord("svstatus", "🟢 Server Run Shod! [" + time + "]");
     }
 
     @Override
     public void onDisable() {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        sendDiscord("svstatus","🔴 Server off Shod!" + " [" + time + "] ");
+        queueDiscord("svstatus","🔴 Server off Shod! [" + time + "]");
+        flushAll();
     }
 
-    private void sendDiscord(String eventType,String message) {
-        String url = webhooks.get(eventType);
-        if (url == null || url.isEmpty()) return;
+    private void sendDiscord(String eventType, String content) {
+        try {
+            FileConfiguration config = getConfig();
+            String url = config.getString("webhooks." + eventType);
+            if (url == null) return;
 
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-            try {
-                URL webhook = new URL(url);
-                HttpURLConnection connection = (HttpURLConnection) webhook.openConnection();
-                connection.setRequestMethod("POST");
-                connection.setRequestProperty("Content-Type", "application/json");
-                connection.setDoOutput(true);
+            URL webhookUrl = new URL(url);
+            HttpURLConnection conn = (HttpURLConnection) webhookUrl.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
 
-                String json = "{\"content\":\"" + message + "\"}";
-                try (OutputStream os = connection.getOutputStream()) {
-                    os.write(json.getBytes(StandardCharsets.UTF_8));
-                }
-
-                connection.getInputStream().close();
-            } catch (Exception e) {
-                e.printStackTrace();
+            String json = "{\"content\":\"" + content.replace("\"", "\\\"") + "\"}";
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes());
             }
-        });
+
+            conn.getInputStream().close();
+        } catch (Exception ignored) {}
     }
 
     private String Bold(String message) {
