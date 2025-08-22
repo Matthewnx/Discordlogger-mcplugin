@@ -78,7 +78,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                     sendDiscord(eventType, combined.toString());
                 }
             }
-        }, 40L, 40L); // 40 ticks = 2 seconds (20 ticks = 1 second)
+        }, 40L, 40L); // 2s interval
     }
 
     public void flushAll() {
@@ -132,13 +132,9 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             }
         }
 
-        // Debug: Print all loaded webhooks
         getLogger().info("Loaded webhooks: " + webhooks.keySet());
 
-        // Register events
         Bukkit.getPluginManager().registerEvents(this, this);
-
-        // Start the async flushing task
         startFlushTask();
 
         // Send startup log
