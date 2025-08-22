@@ -32,71 +32,116 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 //main class
 public class DiscordLogger extends JavaPlugin implements Listener {
 
+    private final Map<String, String> webhooks = new ConcurrentHashMap<>();
     private final Map<String, List<String>> messageBuffer = new ConcurrentHashMap<>();
-    private final Map<String, String> webhooks = new HashMap<>();
 
     public void queueDiscord(String eventType, String message) {
-        messageBuffer.computeIfAbsent(eventType, k -> Collections.synchronizedList(new ArrayList<>()))
-                .add(message);
+
+        messageBuffer.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>()).add(message);
+
     }
+
     public void startFlushTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
             for (Map.Entry<String, List<String>> entry : messageBuffer.entrySet()) {
-                List<String> msgsCopy;
-                synchronized (entry.getValue()) {
-                    if (entry.getValue().isEmpty()) continue;
-                    msgsCopy = new ArrayList<>(entry.getValue()); // copy
-                    entry.getValue().clear(); // clear original
+                String eventType = entry.getKey();
+                List<String> messages = entry.getValue();
+
+                if (messages.isEmpty()) continue;
+
+                // Create a copy and clear the buffer
+                List<String> messagesToSend = new ArrayList<>(messages);
+                messages.clear();
+
+                // Combine all messages
+                StringBuilder combined = new StringBuilder();
+                for (String msg : messagesToSend) {
+                    if (combined.length() + msg.length() + 1 > 2000) {
+                        // Send current chunk if adding this message would exceed limit
+                        sendDiscord(eventType, combined.toString());
+                        combined = new StringBuilder();
+                    }
+
+                    if (combined.length() > 0) {
+                        combined.append("\n");
+                    }
+                    combined.append(msg);
                 }
-                String combined = String.join("\n", msgsCopy);
-                sendDiscord(entry.getKey(), combined);
+
+                // Send any remaining messages
+                if (combined.length() > 0) {
+                    sendDiscord(eventType, combined.toString());
+                }
             }
-        }, 20L, 40L); // 2s flush
+        }, 40L, 40L); // 40 ticks = 2 seconds (20 ticks = 1 second)
     }
+
     public void flushAll() {
-        // snapshot + clear under lock to avoid ConcurrentModification
-        Map<String, String> toSend = new HashMap<>();
-        synchronized (messageBuffer) {
-            for (Map.Entry<String, List<String>> entry : messageBuffer.entrySet()) {
-                List<String> msgs = entry.getValue();
-                if (msgs != null && !msgs.isEmpty()) {
-                    toSend.put(entry.getKey(), String.join("\n", msgs));
-                    msgs.clear();
+        for (Map.Entry<String, List<String>> entry : messageBuffer.entrySet()) {
+            String eventType = entry.getKey();
+            List<String> messages = entry.getValue();
+
+            if (messages.isEmpty()) continue;
+
+            // Create a copy and clear the buffer
+            List<String> messagesToSend = new ArrayList<>(messages);
+            messages.clear();
+
+            // Combine all messages
+            StringBuilder combined = new StringBuilder();
+            for (String msg : messagesToSend) {
+                if (combined.length() + msg.length() + 1 > 2000) {
+                    // Send current chunk if adding this message would exceed limit
+                    sendDiscord(eventType, combined.toString());
+                    combined = new StringBuilder();
                 }
+
+                if (combined.length() > 0) {
+                    combined.append("\n");
+                }
+                combined.append(msg);
             }
-        }
-        // send outside the lock
-        for (Map.Entry<String, String> e : toSend.entrySet()) {
-            try {
-                sendDiscord(e.getKey(), e.getValue());
-            } catch (Exception ignored) {}
+
+            // Send any remaining messages
+            if (combined.length() > 0) {
+                sendDiscord(eventType, combined.toString());
+            }
         }
     }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        reloadConfig();
 
-        // load webhooks from config
+        // Load webhooks from config
         FileConfiguration config = getConfig();
         ConfigurationSection section = config.getConfigurationSection("webhooks");
         if (section != null) {
             for (String key : section.getKeys(false)) {
-                webhooks.put(key, section.getString(key));
+                String webhookUrl = section.getString(key);
+                if (webhookUrl != null && !webhookUrl.isEmpty()) {
+                    webhooks.put(key, webhookUrl);
+                    getLogger().info("Loaded webhook for " + key);
+                }
             }
         }
 
-        // register events
+        // Debug: Print all loaded webhooks
+        getLogger().info("Loaded webhooks: " + webhooks.keySet());
+
+        // Register events
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        // start the async flushing task
+        // Start the async flushing task
         startFlushTask();
 
-        // send startup log
+        // Send startup log
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         queueDiscord("svstatus", "🟢 Server Run Shod! [" + time + "]");
     }
@@ -108,12 +153,12 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         flushAll();
     }
 
-    //send data to discord trow the webhook
-    //you can also bypass queqe with using this directly
+    // Send data to discord through the webhook
     private void sendDiscord(String eventType, String content) {
         try {
             FileConfiguration config = getConfig();
             String url = config.getString("webhooks." + eventType);
+
             if (url == null) return;
 
             URL webhookUrl = new URL(url);
@@ -121,14 +166,32 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
 
-            String json = "{\"content\":\"" + content.replace("\"", "\\\"") + "\"}";
+            // Proper JSON escaping
+            String escapedContent = content
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "\\r")
+                    .replace("\t", "\\t");
+
+            String json = "{\"content\":\"" + escapedContent + "\"}";
+
             try (OutputStream os = conn.getOutputStream()) {
-                os.write(json.getBytes());
+                os.write(json.getBytes("UTF-8"));
             }
 
-            conn.getInputStream().close();
-        } catch (Exception ignored) {}
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200 && responseCode != 204) {
+                getLogger().warning("Discord webhook for " + eventType + " returned response code: " + responseCode);
+            }
+
+            conn.disconnect();
+        } catch (Exception e) {
+            getLogger().warning("Failed to send Discord webhook for " + eventType + ": " + e.getMessage());
+        }
     }
 
     private String Bold(String message) {
