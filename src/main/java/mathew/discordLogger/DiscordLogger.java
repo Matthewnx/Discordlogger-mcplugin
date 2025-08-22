@@ -20,12 +20,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.GameMode;
 
-
-
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -42,7 +39,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
     public void queueDiscord(String eventType, String message) {
 
-        messageBuffer.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>()).add(message);
+        messageBuffer.computeIfAbsent(eventType, k -> Collections.synchronizedList(new ArrayList<>())).add(message);
 
     }
 
@@ -152,6 +149,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     // Send data to discord through the webhook
     private void sendDiscord(String eventType, String content) {
         try {
+            saveDefaultConfig();
             FileConfiguration config = getConfig();
             String url = config.getString("webhooks." + eventType);
 
