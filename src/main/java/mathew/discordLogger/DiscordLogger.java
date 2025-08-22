@@ -1,7 +1,7 @@
 package mathew.discordLogger;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
+import org.bukkit.*;
+import org.bukkit.advancement.Advancement;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -15,10 +15,8 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
-import org.bukkit.GameMode;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -343,5 +341,30 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String msg = e.getMessage();
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         queueDiscord("chat"," [" + time + "] " + " 💬 " + Bold(player) + ": " + msg);
+    }
+    @EventHandler
+    public void onAdvancementDone(PlayerAdvancementDoneEvent e) {
+        Player player = e.getPlayer();
+        Advancement advancement = e.getAdvancement();
+
+        NamespacedKey key = advancement.getKey();
+
+        // ignore recipes and hidden advancements
+        if (key.getKey().startsWith("recipes/")) {
+            return;
+        }
+        if (advancement.getDisplay() == null || advancement.getDisplay().isHidden()) {
+            return;
+        }
+
+        // get readable title
+        String display = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                .serialize(advancement.getDisplay().title());
+
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        queueDiscord("advancement",
+                "🏆 " + Bold(player.getName()) + " Achievement: "
+                        + Bold(display) + " daryaft kard [" + time + "]"
+        );
     }
 }

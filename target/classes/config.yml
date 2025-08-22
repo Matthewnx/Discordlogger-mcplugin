@@ -11,3 +11,4 @@ webhooks:
   gamemode: "https://discord.com/api/webhooks/1408212747933454407/TOdcnvx10bHIoxUm4F1wf9QcG4jxyqrRIQLvUldcylZsdTKHRK-y1PIeyhZA-6ZpLKlx"
   worldchange: "https://discord.com/api/webhooks/1408212743856717824/t0QG-xakTqIJ1PxvIiZrimMc1WHOmFw7wbNL5eam5os7YpS6N6Mmae0f2dfnzEBZoGLJ"
   usecommand: "https://discord.com/api/webhooks/1408212753554079805/2APSBcF0bmiKyrRZqGsKslQMRf8XwQS-Ce7L_hjRAZg7JYZ6w7JIHny0zghEPMZKQWjI"
+  advancement: "https://discord.com/api/webhooks/1408586630872170649/VbA8SvjcduKz1ttZuD9wQ0r6Cl-zx41Jr1KAi86jI1yaXtr3OKUGmum1svMqczk1n7ry"
