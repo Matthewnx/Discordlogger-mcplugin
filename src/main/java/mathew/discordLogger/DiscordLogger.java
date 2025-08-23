@@ -407,12 +407,12 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     public void onVillagerTrade(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
         if (!(e.getInventory() instanceof MerchantInventory merchantInv)) return;
-        if (e.getSlotType() != InventoryType.SlotType.RESULT) return; // only when taking the result
+        if (e.getSlotType() != InventoryType.SlotType.RESULT) return;
 
         MerchantRecipe recipe = merchantInv.getSelectedRecipe();
         if (recipe == null) return;
 
-        // Villager profession label
+        // Get villager type
         String villagerType;
         if (merchantInv.getMerchant() instanceof Villager villager) {
             String prof = villager.getProfession().toString().toLowerCase().replace("_", " ");
@@ -421,77 +421,79 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             villagerType = "Villager";
         }
 
-        // Result prototype
         ItemStack resultProto = recipe.getResult();
 
-        // Snapshot BEFORE
-        Map<Material, Integer> beforeCost = new HashMap<>();
-        for (ItemStack ing : recipe.getIngredients()) {
-            if (ing != null && ing.getType() != Material.AIR) {
-                beforeCost.merge(ing.getType(), countMaterial(player.getInventory(), ing.getType()), Integer::sum);
-            }
-        }
-        int beforeResultCount = countSimilar(player.getInventory(), resultProto);
+        // Calculate how many trades were performed
+        int tradesPerformed = 1;
 
-        // Immutable details for logging
-        Location loc = player.getLocation();
-        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
-        String playerName = player.getName();
+        // If shift-clicked, calculate maximum possible trades
+        if (e.isShiftClick()) {
+            int maxPossibleTrades = Integer.MAX_VALUE;
 
-        // ✅ Run next tick: after trade completes
-        Bukkit.getScheduler().runTask(this, () -> {
-            // Snapshot AFTER
-            Map<Material, Integer> afterCost = new HashMap<>();
-            for (Material m : beforeCost.keySet()) {
-                afterCost.put(m, countMaterial(player.getInventory(), m));
-            }
-            int afterResultCount = countSimilar(player.getInventory(), resultProto);
-
-            // What actually happened
-            int gained = Math.max(0, afterResultCount - beforeResultCount);
-            if (gained <= 0) return; // nothing happened
-
-            // Calculate cost difference (real usage)
-            StringBuilder costBuilder = new StringBuilder();
-            for (Material mat : beforeCost.keySet()) {
-                int before = beforeCost.getOrDefault(mat, 0);
-                int after = afterCost.getOrDefault(mat, 0);
-                int used = Math.max(0, before - after);
-                if (used > 0) {
-                    costBuilder.append(used)
-                            .append("x ")
-                            .append(prettyItemName(mat))
-                            .append(", ");
+            // Check ingredient limitations
+            for (ItemStack ingredient : recipe.getIngredients()) {
+                if (ingredient != null && ingredient.getType() != Material.AIR) {
+                    int available = countMaterial(player.getInventory(), ingredient.getType());
+                    int required = ingredient.getAmount();
+                    maxPossibleTrades = Math.min(maxPossibleTrades, available / required);
                 }
             }
-            String costs = costBuilder.length() > 2
-                    ? costBuilder.substring(0, costBuilder.length() - 2)
-                    : "??";
 
-            String resultName = gained + "x " + prettyItemName(resultProto.getType());
-            String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+            // Check inventory space for result
+            int resultSpace = calculateSpaceForItem(player.getInventory(), resultProto);
+            maxPossibleTrades = Math.min(maxPossibleTrades, resultSpace / resultProto.getAmount());
 
-            queueDiscord("trade",
-                    "🤝 " + Bold(playerName) + " ba yek " + Bold(villagerType) +
-                            " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
-                            " ra da ezaye → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
-            );
-        });
+            tradesPerformed = Math.max(1, maxPossibleTrades);
+        }
+
+        // Calculate costs
+        StringBuilder costBuilder = new StringBuilder();
+        for (ItemStack ingredient : recipe.getIngredients()) {
+            if (ingredient != null && ingredient.getType() != Material.AIR) {
+                int totalUsed = ingredient.getAmount() * tradesPerformed;
+                costBuilder.append(totalUsed)
+                        .append("x ")
+                        .append(prettyItemName(ingredient.getType()))
+                        .append(", ");
+            }
+        }
+
+        String costs = costBuilder.length() > 2 ?
+                costBuilder.substring(0, costBuilder.length() - 2) : "??";
+
+        // Prepare log message
+        Location loc = player.getLocation();
+        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        int totalResultAmount = resultProto.getAmount() * tradesPerformed;
+        String resultName = totalResultAmount + "x " + prettyItemName(resultProto.getType());
+
+        queueDiscord("trade",
+                "🤝 " + Bold(player.getName()) + " ba yek " + Bold(villagerType) +
+                        " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
+                        " ra da ezaye → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
+        );
     }
 
-    // === helpers ===
+    // Helper method to calculate inventory space for an item
+    private int calculateSpaceForItem(Inventory inv, ItemStack item) {
+        int space = 0;
+        for (ItemStack stack : inv.getStorageContents()) {
+            if (stack == null || stack.getType() == Material.AIR) {
+                space += item.getMaxStackSize();
+            } else if (stack.isSimilar(item)) {
+                space += item.getMaxStackSize() - stack.getAmount();
+            }
+        }
+        return space;
+    }
+
+    // Keep your existing helper methods:
     private int countMaterial(Inventory inv, Material mat) {
         int total = 0;
         for (ItemStack s : inv.getContents()) {
             if (s != null && s.getType() == mat) total += s.getAmount();
-        }
-        return total;
-    }
-
-    private int countSimilar(Inventory inv, ItemStack proto) {
-        int total = 0;
-        for (ItemStack s : inv.getContents()) {
-            if (s != null && s.isSimilar(proto)) total += s.getAmount();
         }
         return total;
     }
