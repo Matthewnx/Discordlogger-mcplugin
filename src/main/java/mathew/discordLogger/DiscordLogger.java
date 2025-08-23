@@ -407,109 +407,72 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     public void onVillagerTrade(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
         if (!(e.getInventory() instanceof MerchantInventory merchantInv)) return;
-        if (e.getSlotType() != InventoryType.SlotType.RESULT) return;
+        if (e.getSlotType() != InventoryType.SlotType.RESULT) return; // Only result slot
 
         MerchantRecipe recipe = merchantInv.getSelectedRecipe();
         if (recipe == null) return;
 
-        // Get villager type
-        String villagerType;
+        // get villager type
+        String villagerType = "Villager";
         if (merchantInv.getMerchant() instanceof Villager villager) {
-            String prof = villager.getProfession().toString().toLowerCase().replace("_", " ");
-            villagerType = Character.toUpperCase(prof.charAt(0)) + prof.substring(1);
-        } else {
-            villagerType = "Villager";
+            villagerType = villager.getProfession().toString().toLowerCase().replace("_", " ");
+            villagerType = Character.toUpperCase(villagerType.charAt(0)) + villagerType.substring(1);
         }
 
-        ItemStack resultProto = recipe.getResult();
-
-        // Take a snapshot of the inventory before the trade
-        Map<Material, Integer> beforeItems = new HashMap<>();
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (item != null && item.getType() != Material.AIR) {
-                beforeItems.put(item.getType(), beforeItems.getOrDefault(item.getType(), 0) + item.getAmount());
+        // Ingredients (costs)
+        List<ItemStack> ingredients = recipe.getIngredients();
+        StringBuilder costBuilder = new StringBuilder();
+        for (ItemStack ingredient : ingredients) {
+            if (ingredient != null && ingredient.getType() != Material.AIR) {
+                costBuilder.append(ingredient.getAmount())
+                        .append("x ")
+                        .append(prettyItemName(ingredient.getType()))
+                        .append(", ");
             }
         }
+        String costs = costBuilder.length() > 2 ? costBuilder.substring(0, costBuilder.length() - 2) : "??";
 
-        // Store the recipe and villager type for use in the delayed task
-        MerchantRecipe finalRecipe = recipe;
-        String finalVillagerType = villagerType;
+        // Result
+        ItemStack result = recipe.getResult();
+        String resultName;
 
-        // Run after the trade completes to see what actually changed
-        Bukkit.getScheduler().runTask(this, () -> {
-            // Take a snapshot of the inventory after the trade
-            Map<Material, Integer> afterItems = new HashMap<>();
-            for (ItemStack item : player.getInventory().getContents()) {
-                if (item != null && item.getType() != Material.AIR) {
-                    afterItems.put(item.getType(), afterItems.getOrDefault(item.getType(), 0) + item.getAmount());
+        // Check shift-click (take ALL possible trades)
+        int totalAmount = result.getAmount();
+        if (e.isShiftClick()) {
+            int possible = recipe.getMaxUses(); // default limit
+            // calculate min number of trades based on ingredients available in inv
+            for (ItemStack ing : ingredients) {
+                if (ing != null && ing.getType() != Material.AIR) {
+                    int has = countItem(player.getInventory(), ing.getType());
+                    possible = Math.min(possible, has / ing.getAmount());
                 }
             }
+            totalAmount = result.getAmount() * possible;
+        }
+        resultName = totalAmount + "x " + prettyItemName(result.getType());
 
-            // Calculate what was gained and lost
-            Map<Material, Integer> gainedItems = new HashMap<>();
-            Map<Material, Integer> lostItems = new HashMap<>();
+        // Location
+        Location loc = player.getLocation();
+        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
-            // Check for gained items (results)
-            for (Material material : afterItems.keySet()) {
-                int afterAmount = afterItems.get(material);
-                int beforeAmount = beforeItems.getOrDefault(material, 0);
+        // Time
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-                if (afterAmount > beforeAmount) {
-                    gainedItems.put(material, afterAmount - beforeAmount);
-                }
-            }
-
-            // Check for lost items (ingredients)
-            for (Material material : beforeItems.keySet()) {
-                int beforeAmount = beforeItems.get(material);
-                int afterAmount = afterItems.getOrDefault(material, 0);
-
-                if (afterAmount < beforeAmount) {
-                    lostItems.put(material, beforeAmount - afterAmount);
-                }
-            }
-
-            // Find the result item that was gained
-            Material resultMaterial = finalRecipe.getResult().getType();
-            int resultGained = gainedItems.getOrDefault(resultMaterial, 0);
-
-            if (resultGained <= 0) {
-                return; // No trade actually happened
-            }
-
-            // Calculate costs based on what was actually lost
-            StringBuilder costBuilder = new StringBuilder();
-            for (ItemStack ingredient : finalRecipe.getIngredients()) {
-                if (ingredient != null && ingredient.getType() != Material.AIR) {
-                    int amountLost = lostItems.getOrDefault(ingredient.getType(), 0);
-                    if (amountLost > 0) {
-                        costBuilder.append(amountLost)
-                                .append("x ")
-                                .append(prettyItemName(ingredient.getType()))
-                                .append(", ");
-                    }
-                }
-            }
-
-            String costs = costBuilder.length() > 2 ?
-                    costBuilder.substring(0, costBuilder.length() - 2) : "??";
-
-            // Prepare log message
-            Location loc = player.getLocation();
-            String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
-            String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-
-            String resultName = resultGained + "x " + prettyItemName(resultMaterial);
-
-            queueDiscord("trade",
-                    "🤝 " + Bold(player.getName()) + " ba yek " + Bold(finalVillagerType) +
-                            " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
-                            " ra da ezaye → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
-            );
-        });
+        queueDiscord("trade","🤝 " + Bold(player.getName()) + " ba yek " + Bold(villagerType) + " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
+                " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
+        );
     }
 
-    // Keep your existing helper methods
+    private int countItem(Inventory inv, Material mat) {
+        int count = 0;
+        for (ItemStack stack : inv.getContents()) {
+            if (stack != null && stack.getType() == mat) {
+                count += stack.getAmount();
+            }
+        }
+        return count;
+    }
+
     private String prettyItemName(Material mat) {
         return mat.toString().toLowerCase().replace("_", " ");
     }
