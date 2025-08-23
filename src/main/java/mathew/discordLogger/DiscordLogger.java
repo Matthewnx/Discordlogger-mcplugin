@@ -10,6 +10,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.MerchantInventory;
+import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -387,5 +390,41 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         queueDiscord("mobkills",
                 "⚔️ " + Bold(killer.getName()) + " yek " + Bold(mobName) + " ro kosht! [" + time + "]"
         );
+    }
+    @EventHandler
+    public void onVillagerTrade(InventoryClickEvent e) {
+        if (!(e.getWhoClicked() instanceof Player player)) return;
+
+        if (!(e.getInventory() instanceof MerchantInventory merchantInv)) return;
+        if (e.getSlotType() != InventoryType.SlotType.RESULT) return; // Only log when they take result
+
+        MerchantRecipe recipe = merchantInv.getSelectedRecipe();
+        if (recipe == null) return;
+
+        // Inputs (costs)
+        List<ItemStack> ingredients = recipe.getIngredients();
+        StringBuilder costBuilder = new StringBuilder();
+        for (ItemStack ingredient : ingredients) {
+            if (ingredient != null && ingredient.getType() != Material.AIR) {
+                costBuilder.append(ingredient.getAmount())
+                        .append("x ")
+                        .append(prettyItemName(ingredient.getType()))
+                        .append(", ");
+            }
+        }
+        String costs = costBuilder.length() > 2 ? costBuilder.substring(0, costBuilder.length() - 2) : "??";
+
+        // Result
+        ItemStack result = recipe.getResult();
+        String resultName = result.getAmount() + "x " + prettyItemName(result.getType());
+
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        queueDiscord("trade",
+                "🤝 " + Bold(player.getName()) + ", " + Bold(costs) + "ra da ezaye" + " → " + Bold(resultName) + " trade card" + " [" + time + "]"
+        );
+    }
+
+    private String prettyItemName(Material mat) {
+        return mat.toString().toLowerCase().replace("_", " ");
     }
 }

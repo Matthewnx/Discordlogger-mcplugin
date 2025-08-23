@@ -13,3 +13,4 @@ webhooks:
   usecommand: "https://discord.com/api/webhooks/1408212753554079805/2APSBcF0bmiKyrRZqGsKslQMRf8XwQS-Ce7L_hjRAZg7JYZ6w7JIHny0zghEPMZKQWjI"
   advancement: "https://discord.com/api/webhooks/1408586630872170649/VbA8SvjcduKz1ttZuD9wQ0r6Cl-zx41Jr1KAi86jI1yaXtr3OKUGmum1svMqczk1n7ry"
   mobkills: "https://discord.com/api/webhooks/1408778980797972520/wkpvffMfYb-7gATO_Pr9VUnGgg3ppf1rHG9ombJOzkuYK8MxomqWxtDgVru70AVqAb1u"
+  trade: "https://discord.com/api/webhooks/1408785795052998768/c7Z44308lLJFZbR40FmBNvx2wHOC7Wh3irtnbDmy6oSdHRU-Wg9B9atpKBGgT1AljpPA"
