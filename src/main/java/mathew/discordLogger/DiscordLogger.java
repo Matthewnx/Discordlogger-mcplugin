@@ -424,27 +424,10 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         ItemStack resultProto = recipe.getResult();
 
         // Calculate how many trades were performed
-        int tradesPerformed = 1;
+        int tradesPerformed = calculateTradesPerformed(player, recipe, e.isShiftClick());
 
-        // If shift-clicked, calculate maximum possible trades
-        if (e.isShiftClick()) {
-            int maxPossibleTrades = Integer.MAX_VALUE;
-
-            // Check ingredient limitations
-            for (ItemStack ingredient : recipe.getIngredients()) {
-                if (ingredient != null && ingredient.getType() != Material.AIR) {
-                    int available = countMaterial(player.getInventory(), ingredient.getType());
-                    int required = ingredient.getAmount();
-                    maxPossibleTrades = Math.min(maxPossibleTrades, available / required);
-                }
-            }
-
-            // Check inventory space for result
-            int resultSpace = calculateSpaceForItem(player.getInventory(), resultProto);
-            maxPossibleTrades = Math.min(maxPossibleTrades, resultSpace / resultProto.getAmount());
-
-            tradesPerformed = Math.max(1, maxPossibleTrades);
-        }
+        // If no trades were performed, exit
+        if (tradesPerformed <= 0) return;
 
         // Calculate costs
         StringBuilder costBuilder = new StringBuilder();
@@ -476,20 +459,55 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         );
     }
 
-    // Helper method to calculate inventory space for an item
+    private int calculateTradesPerformed(Player player, MerchantRecipe recipe, boolean isShiftClick) {
+        if (!isShiftClick) {
+            return 1; // Single trade for regular click
+        }
+
+        // For shift-click, calculate how many trades can be performed
+        int maxTrades = Integer.MAX_VALUE;
+
+        // Check ingredient limitations
+        for (ItemStack ingredient : recipe.getIngredients()) {
+            if (ingredient != null && ingredient.getType() != Material.AIR) {
+                int available = countMaterial(player.getInventory(), ingredient.getType());
+                int requiredPerTrade = ingredient.getAmount();
+
+                // Calculate how many trades can be done with this ingredient
+                int tradesFromIngredient = available / requiredPerTrade;
+                maxTrades = Math.min(maxTrades, tradesFromIngredient);
+            }
+        }
+
+        // Check inventory space for result
+        ItemStack result = recipe.getResult();
+        int spaceAvailable = calculateSpaceForItem(player.getInventory(), result);
+        int tradesFromSpace = spaceAvailable / result.getAmount();
+        maxTrades = Math.min(maxTrades, tradesFromSpace);
+
+        // Ensure at least one trade
+        return Math.max(1, maxTrades);
+    }
+
+    // Improved method to calculate inventory space for an item
     private int calculateSpaceForItem(Inventory inv, ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) return 0;
+
         int space = 0;
-        for (ItemStack stack : inv.getStorageContents()) {
+        ItemStack[] contents = inv.getStorageContents();
+
+        for (ItemStack stack : contents) {
             if (stack == null || stack.getType() == Material.AIR) {
                 space += item.getMaxStackSize();
             } else if (stack.isSimilar(item)) {
                 space += item.getMaxStackSize() - stack.getAmount();
             }
         }
+
         return space;
     }
 
-    // Keep your existing helper methods:
+    // Keep your existing helper methods
     private int countMaterial(Inventory inv, Material mat) {
         int total = 0;
         for (ItemStack s : inv.getContents()) {
