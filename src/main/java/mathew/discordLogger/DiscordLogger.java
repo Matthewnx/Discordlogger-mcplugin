@@ -366,7 +366,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                 .serialize(advancement.getDisplay().title());
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("advancement", "🏆 " + Bold(player.getName()) + " Achievement: " + Bold(display) + " daryaft kard [" + time + "]"
+        queueDiscord("advancement", "🏆 " + Bold(player.getName()) + " Achievement: " + Bold(display) + " daryaft kard " + Bold("[" + time + "]")
         );
     }
     private String prettifyName(@NotNull EntityType type) {
@@ -389,9 +389,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String mobName = prettifyName(e.getEntity().getType());
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-        queueDiscord("mobkills",
-                "⚔️ " + Bold(killer.getName()) + " yek " + Bold(mobName) + " ro kosht! [" + time + "]"
-        );
+        queueDiscord("mobkills", "⚔️ " + Bold(killer.getName()) + " yek " + Bold(mobName) + " ro kosht!" + Bold(" [" + time + "] "));
     }
     @EventHandler
     public void onVillagerTrade(InventoryClickEvent e) {
@@ -428,7 +426,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         queueDiscord("trade",
-                "🤝 " + Bold(player.getName()) + " ba yek, "+ Bold(villagerType) + " trade kard va " + Bold(resultName) + " ra da ezaye " + " → " + Bold(costs) + " gereft" + " [" + time + "]"
+                "🤝 " + Bold(player.getName()) + " ba yek, "+ Bold(villagerType) + " trade kard va " + Bold(resultName) + " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
         );
     }
 
