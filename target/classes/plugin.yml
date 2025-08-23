@@ -1,5 +1,5 @@
 name: DiscordLogger
-version: '2.0-release'
+version: '2.1-release'
 main: mathew.discordLogger.DiscordLogger
 api-version: '1.21'
 authors: [ matthewnx ]
