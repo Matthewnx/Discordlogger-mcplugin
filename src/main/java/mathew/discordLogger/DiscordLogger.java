@@ -416,4 +416,18 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                         " be " + Bold(weather) + " taghir kard " + " " + Bold("[" + time + "]")
         );
     }
+    @EventHandler
+    public void onItemBreak(PlayerItemBreakEvent e) {
+        Player player = e.getPlayer();
+        ItemStack broken = e.getBrokenItem();
+
+        String itemName = prettyItemName(broken.getType());
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        queueDiscord("itembreak",
+                "💥 " + Bold(player.getName()) +
+                        ", " + Bold(itemName) +
+                        " ra shekast " + Bold("[" + time + "]")
+        );
+    }
 }
