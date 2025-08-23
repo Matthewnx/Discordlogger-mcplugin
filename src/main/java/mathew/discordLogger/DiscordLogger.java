@@ -6,6 +6,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
@@ -254,7 +255,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String world = loc.getWorld().getName(); // world name
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("breakblock","⛏️ " + Bold(player.getName()) + ", " +  Bold(e.getBlock().getType().toString()) +"  Ra Dar " + Bold(coords) +", " + Bold(world) + " Mine kard! " +  Bold(" [" + time + "] ") );
+        queueDiscord("breakblock","⛏️ " + Bold(player.getName()) + ", " +  Bold(prettyItemName(e.getBlock().getType()).toString()) +"  Ra Dar " + Bold(coords) +", " + Bold(world) + " Mine kard! " +  Bold(" [" + time + "] ") );
     }
 
     @EventHandler
@@ -274,7 +275,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                 amount = possibleCrafts * resultAmount;
             }
             //crafted item properties
-            String item = e.getRecipe().getResult().getType().toString();
+            String item = prettyItemName(e.getRecipe().getResult().getType()).toString();
             String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
             queueDiscord("craft","⚒️ " + Bold(String.valueOf(amount)) + ", " + Bold(item) + " Tavasot " + Bold(player.getName()) + " Craft Shod! "  + Bold(" [" + time + "] "));
         }
@@ -309,7 +310,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
             //item attibutes
             int amount = item.getAmount();
-            String name = item.getType().toString();
+            String name = prettyItemName(item.getType());
             String source = e.getInventory().getType().toString(); // CHEST, BARREL, FURNACE, etc.
 
             //calculate exact position of player at doing this event
@@ -329,7 +330,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         //item artibutes
         ItemStack stack = e.getItemDrop().getItemStack();
         int amount = stack.getAmount();
-        String item = stack.getType().toString();
+        String item = prettyItemName(stack.getType());
 
         //calculate exact position of player at doing this event
         Location loc = player.getLocation();
@@ -401,6 +402,12 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         MerchantRecipe recipe = merchantInv.getSelectedRecipe();
         if (recipe == null) return;
 
+        String villagerType = "Villager";
+        if (merchantInv.getMerchant() instanceof Villager villager) {
+            villagerType = villager.getProfession().toString().toLowerCase().replace("_", " ");
+            villagerType = Character.toUpperCase(villagerType.charAt(0)) + villagerType.substring(1); // capitalize
+        }
+
         // Inputs (costs)
         List<ItemStack> ingredients = recipe.getIngredients();
         StringBuilder costBuilder = new StringBuilder();
@@ -420,7 +427,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         queueDiscord("trade",
-                "🤝 " + Bold(player.getName()) + ", " + Bold(costs) + "ra da ezaye" + " → " + Bold(resultName) + " trade card" + " [" + time + "]"
+                "🤝 " + Bold(player.getName()) + "ba yek, "+ Bold(villagerType) + "trade kard va" + Bold(costs) + "ra da ezaye" + " → " + Bold(resultName) + " gereft" + " [" + time + "]"
         );
     }
 
