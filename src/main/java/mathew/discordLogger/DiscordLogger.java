@@ -423,99 +423,93 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         ItemStack resultProto = recipe.getResult();
 
-        // Calculate how many trades were performed
-        int tradesPerformed = calculateTradesPerformed(player, recipe, e.isShiftClick());
-
-        // If no trades were performed, exit
-        if (tradesPerformed <= 0) return;
-
-        // Calculate costs
-        StringBuilder costBuilder = new StringBuilder();
-        for (ItemStack ingredient : recipe.getIngredients()) {
-            if (ingredient != null && ingredient.getType() != Material.AIR) {
-                int totalUsed = ingredient.getAmount() * tradesPerformed;
-                costBuilder.append(totalUsed)
-                        .append("x ")
-                        .append(prettyItemName(ingredient.getType()))
-                        .append(", ");
+        // Take a snapshot of the inventory before the trade
+        Map<Material, Integer> beforeItems = new HashMap<>();
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (item != null && item.getType() != Material.AIR) {
+                beforeItems.put(item.getType(), beforeItems.getOrDefault(item.getType(), 0) + item.getAmount());
             }
         }
 
-        String costs = costBuilder.length() > 2 ?
-                costBuilder.substring(0, costBuilder.length() - 2) : "??";
+        // Store the recipe and villager type for use in the delayed task
+        MerchantRecipe finalRecipe = recipe;
+        String finalVillagerType = villagerType;
 
-        // Prepare log message
-        Location loc = player.getLocation();
-        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
-        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-
-        int totalResultAmount = resultProto.getAmount() * tradesPerformed;
-        String resultName = totalResultAmount + "x " + prettyItemName(resultProto.getType());
-
-        queueDiscord("trade",
-                "🤝 " + Bold(player.getName()) + " ba yek " + Bold(villagerType) +
-                        " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
-                        " ra da ezaye → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
-        );
-    }
-
-    private int calculateTradesPerformed(Player player, MerchantRecipe recipe, boolean isShiftClick) {
-        if (!isShiftClick) {
-            return 1; // Single trade for regular click
-        }
-
-        // For shift-click, calculate how many trades can be performed
-        int maxTrades = Integer.MAX_VALUE;
-
-        // Check ingredient limitations
-        for (ItemStack ingredient : recipe.getIngredients()) {
-            if (ingredient != null && ingredient.getType() != Material.AIR) {
-                int available = countMaterial(player.getInventory(), ingredient.getType());
-                int requiredPerTrade = ingredient.getAmount();
-
-                // Calculate how many trades can be done with this ingredient
-                int tradesFromIngredient = available / requiredPerTrade;
-                maxTrades = Math.min(maxTrades, tradesFromIngredient);
+        // Run after the trade completes to see what actually changed
+        Bukkit.getScheduler().runTask(this, () -> {
+            // Take a snapshot of the inventory after the trade
+            Map<Material, Integer> afterItems = new HashMap<>();
+            for (ItemStack item : player.getInventory().getContents()) {
+                if (item != null && item.getType() != Material.AIR) {
+                    afterItems.put(item.getType(), afterItems.getOrDefault(item.getType(), 0) + item.getAmount());
+                }
             }
-        }
 
-        // Check inventory space for result
-        ItemStack result = recipe.getResult();
-        int spaceAvailable = calculateSpaceForItem(player.getInventory(), result);
-        int tradesFromSpace = spaceAvailable / result.getAmount();
-        maxTrades = Math.min(maxTrades, tradesFromSpace);
+            // Calculate what was gained and lost
+            Map<Material, Integer> gainedItems = new HashMap<>();
+            Map<Material, Integer> lostItems = new HashMap<>();
 
-        // Ensure at least one trade
-        return Math.max(1, maxTrades);
-    }
+            // Check for gained items (results)
+            for (Material material : afterItems.keySet()) {
+                int afterAmount = afterItems.get(material);
+                int beforeAmount = beforeItems.getOrDefault(material, 0);
 
-    // Improved method to calculate inventory space for an item
-    private int calculateSpaceForItem(Inventory inv, ItemStack item) {
-        if (item == null || item.getType() == Material.AIR) return 0;
-
-        int space = 0;
-        ItemStack[] contents = inv.getStorageContents();
-
-        for (ItemStack stack : contents) {
-            if (stack == null || stack.getType() == Material.AIR) {
-                space += item.getMaxStackSize();
-            } else if (stack.isSimilar(item)) {
-                space += item.getMaxStackSize() - stack.getAmount();
+                if (afterAmount > beforeAmount) {
+                    gainedItems.put(material, afterAmount - beforeAmount);
+                }
             }
-        }
 
-        return space;
+            // Check for lost items (ingredients)
+            for (Material material : beforeItems.keySet()) {
+                int beforeAmount = beforeItems.get(material);
+                int afterAmount = afterItems.getOrDefault(material, 0);
+
+                if (afterAmount < beforeAmount) {
+                    lostItems.put(material, beforeAmount - afterAmount);
+                }
+            }
+
+            // Find the result item that was gained
+            Material resultMaterial = finalRecipe.getResult().getType();
+            int resultGained = gainedItems.getOrDefault(resultMaterial, 0);
+
+            if (resultGained <= 0) {
+                return; // No trade actually happened
+            }
+
+            // Calculate costs based on what was actually lost
+            StringBuilder costBuilder = new StringBuilder();
+            for (ItemStack ingredient : finalRecipe.getIngredients()) {
+                if (ingredient != null && ingredient.getType() != Material.AIR) {
+                    int amountLost = lostItems.getOrDefault(ingredient.getType(), 0);
+                    if (amountLost > 0) {
+                        costBuilder.append(amountLost)
+                                .append("x ")
+                                .append(prettyItemName(ingredient.getType()))
+                                .append(", ");
+                    }
+                }
+            }
+
+            String costs = costBuilder.length() > 2 ?
+                    costBuilder.substring(0, costBuilder.length() - 2) : "??";
+
+            // Prepare log message
+            Location loc = player.getLocation();
+            String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+            String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+            String resultName = resultGained + "x " + prettyItemName(resultMaterial);
+
+            queueDiscord("trade",
+                    "🤝 " + Bold(player.getName()) + " ba yek " + Bold(finalVillagerType) +
+                            " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
+                            " ra da ezaye → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
+            );
+        });
     }
 
     // Keep your existing helper methods
-    private int countMaterial(Inventory inv, Material mat) {
-        int total = 0;
-        for (ItemStack s : inv.getContents()) {
-            if (s != null && s.getType() == mat) total += s.getAmount();
-        }
-        return total;
-    }
-
     private String prettyItemName(Material mat) {
         return mat.toString().toLowerCase().replace("_", " ");
     }
