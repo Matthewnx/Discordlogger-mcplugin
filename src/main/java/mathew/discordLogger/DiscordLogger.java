@@ -108,42 +108,6 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             }
         }
     }
-
-    @Override
-    public void onEnable() {
-        saveDefaultConfig();
-        reloadConfig();
-
-        // Load webhooks from config
-        FileConfiguration config = getConfig();
-        ConfigurationSection section = config.getConfigurationSection("webhooks");
-        if (section != null) {
-            for (String key : section.getKeys(false)) {
-                String webhookUrl = section.getString(key);
-                if (webhookUrl != null && !webhookUrl.isEmpty()) {
-                    webhooks.put(key, webhookUrl);
-                    getLogger().info("Loaded webhook for " + key);
-                }
-            }
-        }
-
-        getLogger().info("Loaded webhooks: " + webhooks.keySet());
-
-        Bukkit.getPluginManager().registerEvents(this, this);
-        startFlushTask();
-
-        // Send startup log
-        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("svstatus", "🟢 Server Run Shod! [" + time + "]");
-    }
-
-    @Override
-    public void onDisable() {
-        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("svstatus","🔴 Server off Shod! [" + time + "]");
-        flushAll();
-    }
-
     // Send data to discord through the webhook
     private void sendDiscord(String eventType, String content) {
         try {
@@ -190,22 +154,57 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         return "**" + message + "**";
     }
 
+    @Override
+    public void onEnable() {
+        saveDefaultConfig();
+        reloadConfig();
+
+        // Load webhooks from config
+        FileConfiguration config = getConfig();
+        ConfigurationSection section = config.getConfigurationSection("webhooks");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                String webhookUrl = section.getString(key);
+                if (webhookUrl != null && !webhookUrl.isEmpty()) {
+                    webhooks.put(key, webhookUrl);
+                    getLogger().info("Loaded webhook for " + key);
+                }
+            }
+        }
+
+        getLogger().info("Loaded webhooks: " + webhooks.keySet());
+
+        Bukkit.getPluginManager().registerEvents(this, this);
+        startFlushTask();
+
+        // Send startup log
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        queueDiscord("svstatus", "🟢 Server Run Shod!" + Bold(" [" + time + "]"));
+    }
+
+    @Override
+    public void onDisable() {
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        queueDiscord("svstatus","🔴 Server off Shod" + Bold(" [" + time + "]"));
+        flushAll();
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("join","✅ " + Bold(e.getPlayer().getName()) + " Be Server Join shod!" +  " [" + time + "] ");
+        queueDiscord("join","✅ " + Bold(e.getPlayer().getName()) + " Be Server Join shod!" +  Bold(" [" + time + "] "));
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("quit","❌ " + Bold(e.getPlayer().getName()) + " az server left dad! " +  " [" + time + "] ");
+        queueDiscord("quit","❌ " + Bold(e.getPlayer().getName()) + " az server left dad! " +  Bold(" [" + time + "] "));
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("death","☠️ " + Bold(e.getDeathMessage()) + " [" + time + "] ");
+        queueDiscord("death","☠️ " + Bold(e.getDeathMessage()) + Bold(" [" + time + "] "));
     }
 
     @EventHandler
@@ -215,7 +214,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String to = formatWorldName(player.getWorld().getName());   // new world name
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-        queueDiscord("worldchange","🌍 " + Bold(player.getName()) + " az  " + from + " be " + to + " raft! " + " [" + time + "] ");
+        queueDiscord("worldchange","🌍 " + Bold(player.getName()) + " az  " + Bold(from) + " be " + Bold(to) + " raft! " + Bold(" [" + time + "] "));
     }
     private String formatWorldName(String world) {
         switch (world) {
@@ -229,7 +228,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("usecommand","⌨️ " + Bold(e.getPlayer().getName()) + " Az: " + e.getMessage() + " estefade kard! " + " [" + time + "] ");
+        queueDiscord("usecommand","⌨️ " + Bold(e.getPlayer().getName()) + " Az: " + Bold(e.getMessage()) + " estefade kard! " + Bold(" [" + time + "] "));
     }
     @EventHandler
     public void onGamemodeChange(PlayerGameModeChangeEvent e) {
@@ -239,7 +238,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String from = player.getGameMode().toString();   // old gamemode
         String to = e.getNewGameMode().toString();  // new gamemode
 
-        queueDiscord("gamemode","🎮 " + Bold(player.getName()) + " gamemode khod ra az " + from + " be " + to + " Switch Kard! " +  " [" + time + "] ");
+        queueDiscord("gamemode","🎮 " + Bold(player.getName()) + " gamemode khod ra az " + Bold(from) + " be " + Bold(to) + " Switch Kard! " +  Bold(" [" + time + "] "));
     }
 
     @EventHandler
@@ -252,7 +251,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String world = loc.getWorld().getName(); // world name
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("breakblock","⛏️ " + Bold(player.getName()) + ", " +  e.getBlock().getType() +"  Ra Dar " + coords +", " + world + " Mine kard! " +  " [" + time + "] ");
+        queueDiscord("breakblock","⛏️ " + Bold(player.getName()) + ", " +  Bold(e.getBlock().getType().toString()) +"  Ra Dar " + Bold(coords) +", " + Bold(world) + " Mine kard! " +  Bold(" [" + time + "] ") );
     }
 
     @EventHandler
@@ -274,7 +273,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             //crafted item properties
             String item = e.getRecipe().getResult().getType().toString();
             String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            queueDiscord("craft","⚒️ " + amount + ", " + item + " Tavasot " + Bold(player.getName()) + " Craft Shod! "  + " [" + time + "] ");
+            queueDiscord("craft","⚒️ " + Bold(String.valueOf(amount)) + ", " + Bold(item) + " Tavasot " + Bold(player.getName()) + " Craft Shod! "  + Bold(" [" + time + "] "));
         }
     }
 
@@ -290,7 +289,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         Location loc = player.getLocation();
         String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
-        queueDiscord("pickup","📥 " + Bold(player.getName())  +", " + amount + "x " + item + " Ra Dar " + coords + " bardasht!" + " [" + time + "] ");
+        queueDiscord("pickup","📥 " + Bold(player.getName())  +", " + Bold(String.valueOf(amount)) + "x " + Bold(item) + " Ra Dar " + Bold(coords) + " bardasht!" + Bold(" [" + time + "] "));
     }
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
@@ -314,7 +313,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             Location loc = player.getLocation();
             String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
-            queueDiscord("pickup","📥 " + Bold(player.getName()) + ", " + amount + "x " + name + " ra  az " + source + " bardasht dar " + coords);
+            queueDiscord("pickup","📥 " + Bold(player.getName()) + ", " + Bold(String.valueOf(amount)) + "x " + Bold(name) + " ra  az " + Bold(source) + " bardasht dar " + Bold(coords));
         }
     }
 
@@ -333,14 +332,14 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         Location loc = player.getLocation();
         String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
 
-        queueDiscord("drop","📥 " + Bold(player.getName())  +", " + amount + "x " + item + " Ra Dar " + coords + " drop kard!" + " [" + time + "] ");
+        queueDiscord("drop","📥 " + Bold(player.getName())  +", " + Bold(String.valueOf(amount)) + "x " + Bold(item) + " Ra Dar " + Bold(coords) + " drop kard!" + Bold(" [" + time + "] "));
     }
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         String player = e.getPlayer().getName();
         String msg = e.getMessage();
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("chat"," [" + time + "] " + " 💬 " + Bold(player) + ": " + msg);
+        queueDiscord("chat",Bold(" [" + time + "] ") + " 💬 " + Bold(player) + ": " + msg);
     }
     @EventHandler
     public void onAdvancementDone(PlayerAdvancementDoneEvent e) {
@@ -362,9 +361,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                 .serialize(advancement.getDisplay().title());
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("advancement",
-                "🏆 " + Bold(player.getName()) + " Achievement: "
-                        + Bold(display) + " daryaft kard [" + time + "]"
+        queueDiscord("advancement", "🏆 " + Bold(player.getName()) + " Achievement: " + Bold(display) + " daryaft kard [" + time + "]"
         );
     }
 }
