@@ -204,7 +204,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("death","☠️ " + Bold(e.getDeathMessage()) + Bold(" [" + time + "] "));
+        queueDiscord("death","☠️ " + Bold(e.getDeathMessage()) + "," + Bold(" [" + time + "] "));
     }
 
     @EventHandler
