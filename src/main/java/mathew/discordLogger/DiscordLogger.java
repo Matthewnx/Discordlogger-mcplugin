@@ -260,9 +260,11 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onCraft(CraftItemEvent e) {
+
         if (e.getWhoClicked() instanceof org.bukkit.entity.Player player) {
 
             int amount = e.getRecipe().getResult().getAmount();
+            //calculate stack operation
             if (e.isShiftClick()) {
                 int resultAmount = e.getRecipe().getResult().getAmount();
                 int possibleCrafts = Integer.MAX_VALUE;
@@ -348,6 +350,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     }
     @EventHandler
     public void onAdvancementDone(PlayerAdvancementDoneEvent e) {
+        //main attributes
         Player player = e.getPlayer();
         Advancement advancement = e.getAdvancement();
 
@@ -369,6 +372,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         queueDiscord("advancement", "🏆 " + Bold(player.getName()) + " Achievement: " + Bold(display) + " daryaft kard " + Bold("[" + time + "]")
         );
     }
+    // fix entity name
     private String prettifyName(@NotNull EntityType type) {
         String raw = type.name().toLowerCase(); // raw
         String[] parts = raw.split("_");
@@ -395,6 +399,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     public void onVillagerTrade(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
 
+        // condition
         if (!(e.getInventory() instanceof MerchantInventory merchantInv)) return;
         if (e.getSlotType() != InventoryType.SlotType.RESULT) return; // Only log when they take result
 
