@@ -425,7 +425,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         ItemStack resultProto = recipe.getResult();
         int perTradeOut = Math.max(1, resultProto.getAmount());
 
-        // Snapshot BEFORE
+        // Snapshot BEFORE — costs and results
         Map<Material, Integer> beforeCost = new HashMap<>();
         for (ItemStack ing : recipe.getIngredients()) {
             if (ing != null && ing.getType() != Material.AIR) {
@@ -433,6 +433,15 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             }
         }
         int beforeResultCount = countSimilar(player.getInventory(), resultProto);
+
+        // Snapshot of what was in the input slots BEFORE trade
+        List<ItemStack> inputSnapshot = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            ItemStack ing = merchantInv.getItem(i);
+            if (ing != null && ing.getType() != Material.AIR) {
+                inputSnapshot.add(ing.clone());
+            }
+        }
 
         // Immutable details for the log
         Location loc = player.getLocation();
@@ -454,18 +463,17 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
             int tradeCount = Math.max(1, gained / perTradeOut);
 
-            // Total costs consumed (real numbers)
+            // Total costs consumed (use the BEFORE snapshot, multiplied by trade count)
             StringBuilder costBuilder = new StringBuilder();
-            for (int i = 0; i < 2; i++) { // two possible input slots
-                ItemStack ingredient = merchantInv.getItem(i);
-                if (ingredient != null && ingredient.getType() != Material.AIR) {
-                    costBuilder.append((ingredient.getAmount() * tradeCount))
-                            .append("x ")
-                            .append(prettyItemName(ingredient.getType()))
-                            .append(", ");
-                }
+            for (ItemStack ing : inputSnapshot) {
+                costBuilder.append((ing.getAmount() * tradeCount))
+                        .append("x ")
+                        .append(prettyItemName(ing.getType()))
+                        .append(", ");
             }
-            String costs = costBuilder.length() > 2 ? costBuilder.substring(0, costBuilder.length() - 2) : "??";
+            String costs = costBuilder.length() > 2
+                    ? costBuilder.substring(0, costBuilder.length() - 2)
+                    : "??";
 
             String resultName = gained + "x " + prettyItemName(resultProto.getType());
             String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
