@@ -419,37 +419,37 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             villagerType = Character.toUpperCase(villagerType.charAt(0)) + villagerType.substring(1);
         }
 
-        // Ingredients (costs)
+        // Default: 1 trade
+        int tradeCount = 1;
+
+        // If shift-click → calculate how many trades possible
+        if (e.isShiftClick()) {
+            int possible = recipe.getMaxUses();
+            for (ItemStack ing : recipe.getIngredients()) {
+                if (ing != null && ing.getType() != Material.AIR) {
+                    int has = countItem(player.getInventory(), ing.getType());
+                    possible = Math.min(possible, has / ing.getAmount());
+                }
+            }
+            tradeCount = Math.max(1, possible);
+        }
+
+        // Scale result
+        ItemStack result = recipe.getResult();
+        String resultName = (result.getAmount() * tradeCount) + "x " + prettyItemName(result.getType());
+
+        // Scale costs
         List<ItemStack> ingredients = recipe.getIngredients();
         StringBuilder costBuilder = new StringBuilder();
         for (ItemStack ingredient : ingredients) {
             if (ingredient != null && ingredient.getType() != Material.AIR) {
-                costBuilder.append(ingredient.getAmount())
+                costBuilder.append((ingredient.getAmount() * tradeCount))
                         .append("x ")
                         .append(prettyItemName(ingredient.getType()))
                         .append(", ");
             }
         }
         String costs = costBuilder.length() > 2 ? costBuilder.substring(0, costBuilder.length() - 2) : "??";
-
-        // Result
-        ItemStack result = recipe.getResult();
-        String resultName;
-
-        // Check shift-click (take ALL possible trades)
-        int totalAmount = result.getAmount();
-        if (e.isShiftClick()) {
-            int possible = recipe.getMaxUses(); // default limit
-            // calculate min number of trades based on ingredients available in inv
-            for (ItemStack ing : ingredients) {
-                if (ing != null && ing.getType() != Material.AIR) {
-                    int has = countItem(player.getInventory(), ing.getType());
-                    possible = Math.min(possible, has / ing.getAmount());
-                }
-            }
-            totalAmount = result.getAmount() * possible;
-        }
-        resultName = totalAmount + "x " + prettyItemName(result.getType());
 
         // Location
         Location loc = player.getLocation();
@@ -458,8 +458,11 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         // Time
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-        queueDiscord("trade","🤝 " + Bold(player.getName()) + " ba yek " + Bold(villagerType) + " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
-                " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
+        // Send log
+        queueDiscord("trade",
+                "🤝 " + Bold(player.getName()) + " ba yek " + Bold(villagerType) +
+                        " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
+                        " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
         );
     }
 
