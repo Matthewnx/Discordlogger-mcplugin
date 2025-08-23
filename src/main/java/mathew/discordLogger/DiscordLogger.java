@@ -112,6 +112,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             }
         }
     }
+
     // Send data to discord through the webhook
     private void sendDiscord(String eventType, String content) {
         try {
@@ -220,6 +221,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         queueDiscord("worldchange","🌍 " + Bold(player.getName()) + " az  " + Bold(from) + " be " + Bold(to) + " raft! " + Bold(" [" + time + "] "));
     }
+
     private String formatWorldName(String world) {
         switch (world) {
             case "world": return "Overworld";
@@ -297,6 +299,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         queueDiscord("pickup","📥 " + Bold(player.getName())  +", " + Bold(String.valueOf(amount)) + "x " + Bold(item) + " Ra Dar " + Bold(coords) + " bardasht!" + Bold(" [" + time + "] "));
     }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         //pick item from inventory or anyting execpt ground
@@ -341,6 +344,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         queueDiscord("drop","📥 " + Bold(player.getName())  +", " + Bold(String.valueOf(amount)) + "x " + Bold(item) + " Ra Dar " + Bold(coords) + " drop kard!" + Bold(" [" + time + "] "));
     }
+
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         String player = e.getPlayer().getName();
@@ -348,6 +352,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         queueDiscord("chat",Bold(" [" + time + "] ") + " 💬 " + Bold(player) + ": " + msg);
     }
+
     @EventHandler
     public void onAdvancementDone(PlayerAdvancementDoneEvent e) {
         //main attributes
@@ -372,6 +377,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         queueDiscord("advancement", "🏆 " + Bold(player.getName()) + " Achievement: " + Bold(display) + " daryaft kard " + Bold("[" + time + "]")
         );
     }
+
     // fix entity name
     private String prettifyName(@NotNull EntityType type) {
         String raw = type.name().toLowerCase(); // raw
@@ -395,11 +401,14 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         queueDiscord("mobkills", "⚔️ " + Bold(killer.getName()) + " yek " + Bold(mobName) + " ro kosht!" + Bold(" [" + time + "] "));
     }
+
     @EventHandler
     public void onVillagerTrade(InventoryClickEvent e) {
+
         //bock attibutes
         Player p = (Player) e.getWhoClicked();
         Location loc = p.getLocation();
+
         //location of block
         String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
         if (!(e.getWhoClicked() instanceof Player player)) return;
