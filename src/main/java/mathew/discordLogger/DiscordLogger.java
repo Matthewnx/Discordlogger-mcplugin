@@ -397,6 +397,11 @@ public class DiscordLogger extends JavaPlugin implements Listener {
     }
     @EventHandler
     public void onVillagerTrade(InventoryClickEvent e) {
+        //bock attibutes
+        Player p = (Player) e.getWhoClicked();
+        Location loc = p.getLocation();
+        //location of block
+        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
         if (!(e.getWhoClicked() instanceof Player player)) return;
 
         // condition
@@ -406,6 +411,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         MerchantRecipe recipe = merchantInv.getSelectedRecipe();
         if (recipe == null) return;
 
+        //get villager
         String villagerType = "Villager";
         if (merchantInv.getMerchant() instanceof Villager villager) {
             villagerType = villager.getProfession().toString().toLowerCase().replace("_", " ");
@@ -431,7 +437,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         queueDiscord("trade",
-                "🤝 " + Bold(player.getName()) + " ba yek, "+ Bold(villagerType) + " trade kard va " + Bold(resultName) + " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
+                "🤝 " + Bold(player.getName()) + " ba yek, "+ Bold(villagerType) + Bold(coords) +  " trade kard va " + Bold(resultName) + " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
         );
     }
 
