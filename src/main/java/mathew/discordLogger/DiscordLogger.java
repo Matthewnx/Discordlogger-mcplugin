@@ -12,6 +12,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.MerchantInventory;
 import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -404,30 +405,21 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onVillagerTrade(InventoryClickEvent e) {
-
-        //bock attibutes
-        Player p = (Player) e.getWhoClicked();
-        Location loc = p.getLocation();
-
-        //location of block
-        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
         if (!(e.getWhoClicked() instanceof Player player)) return;
-
-        // condition
         if (!(e.getInventory() instanceof MerchantInventory merchantInv)) return;
-        if (e.getSlotType() != InventoryType.SlotType.RESULT) return; // Only log when they take result
+        if (e.getSlotType() != InventoryType.SlotType.RESULT) return; // Only result slot
 
         MerchantRecipe recipe = merchantInv.getSelectedRecipe();
         if (recipe == null) return;
 
-        //get villager
+        // get villager type
         String villagerType = "Villager";
         if (merchantInv.getMerchant() instanceof Villager villager) {
             villagerType = villager.getProfession().toString().toLowerCase().replace("_", " ");
-            villagerType = Character.toUpperCase(villagerType.charAt(0)) + villagerType.substring(1); // capitalize
+            villagerType = Character.toUpperCase(villagerType.charAt(0)) + villagerType.substring(1);
         }
 
-        // Inputs (costs)
+        // Ingredients (costs)
         List<ItemStack> ingredients = recipe.getIngredients();
         StringBuilder costBuilder = new StringBuilder();
         for (ItemStack ingredient : ingredients) {
@@ -442,12 +434,43 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         // Result
         ItemStack result = recipe.getResult();
-        String resultName = result.getAmount() + "x " + prettyItemName(result.getType());
+        String resultName;
 
+        // Check shift-click (take ALL possible trades)
+        int totalAmount = result.getAmount();
+        if (e.isShiftClick()) {
+            int possible = recipe.getMaxUses(); // default limit
+            // calculate min number of trades based on ingredients available in inv
+            for (ItemStack ing : ingredients) {
+                if (ing != null && ing.getType() != Material.AIR) {
+                    int has = countItem(player.getInventory(), ing.getType());
+                    possible = Math.min(possible, has / ing.getAmount());
+                }
+            }
+            totalAmount = result.getAmount() * possible;
+        }
+        resultName = totalAmount + "x " + prettyItemName(result.getType());
+
+        // Location
+        Location loc = player.getLocation();
+        String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+
+        // Time
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        queueDiscord("trade",
-                "🤝 " + Bold(player.getName()) + " ba yek, "+ Bold(villagerType) + " dar " + Bold(coords) +  " trade kard va " + Bold(resultName) + " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
+
+        queueDiscord("trade","🤝 " + Bold(player.getName()) + " ba yek " + Bold(villagerType) + " dar " + Bold(coords) + " trade kard va " + Bold(resultName) +
+                " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
         );
+    }
+
+    private int countItem(Inventory inv, Material mat) {
+        int count = 0;
+        for (ItemStack stack : inv.getContents()) {
+            if (stack != null && stack.getType() == mat) {
+                count += stack.getAmount();
+            }
+        }
+        return count;
     }
 
     private String prettyItemName(Material mat) {
