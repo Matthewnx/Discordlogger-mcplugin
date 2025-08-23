@@ -316,8 +316,9 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             //calculate exact position of player at doing this event
             Location loc = player.getLocation();
             String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+            String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-            queueDiscord("pickup","📥 " + Bold(player.getName()) + ", " + Bold(String.valueOf(amount)) + "x " + Bold(name) + " ra  az " + Bold(source) + " bardasht dar " + Bold(coords));
+            queueDiscord("pickup","📥 " + Bold(player.getName()) + ", " + Bold(String.valueOf(amount)) + "x " + Bold(name) + " ra  az " + Bold(source) + " bardasht dar " + Bold(coords) + "." + Bold(" [" + time + "] "));
         }
     }
 
