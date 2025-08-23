@@ -421,11 +421,10 @@ public class DiscordLogger extends JavaPlugin implements Listener {
             villagerType = "Villager";
         }
 
-        // For result counting, use the exact ItemStack (meta-sensitive)
+        // Result prototype
         ItemStack resultProto = recipe.getResult();
-        int perTradeOut = Math.max(1, resultProto.getAmount());
 
-        // Snapshot BEFORE — costs and results
+        // Snapshot BEFORE
         Map<Material, Integer> beforeCost = new HashMap<>();
         for (ItemStack ing : recipe.getIngredients()) {
             if (ing != null && ing.getType() != Material.AIR) {
@@ -434,21 +433,12 @@ public class DiscordLogger extends JavaPlugin implements Listener {
         }
         int beforeResultCount = countSimilar(player.getInventory(), resultProto);
 
-        // Snapshot of what was in the input slots BEFORE trade
-        List<ItemStack> inputSnapshot = new ArrayList<>();
-        for (int i = 0; i < 2; i++) {
-            ItemStack ing = merchantInv.getItem(i);
-            if (ing != null && ing.getType() != Material.AIR) {
-                inputSnapshot.add(ing.clone());
-            }
-        }
-
-        // Immutable details for the log
+        // Immutable details for logging
         Location loc = player.getLocation();
         String coords = "(" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
         String playerName = player.getName();
 
-        // ✅ Run next tick: after Minecraft finishes the trade(s)
+        // ✅ Run next tick: after trade completes
         Bukkit.getScheduler().runTask(this, () -> {
             // Snapshot AFTER
             Map<Material, Integer> afterCost = new HashMap<>();
@@ -459,17 +449,20 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
             // What actually happened
             int gained = Math.max(0, afterResultCount - beforeResultCount);
-            if (gained <= 0) return; // nothing taken → don't log
+            if (gained <= 0) return; // nothing happened
 
-            int tradeCount = Math.max(1, gained / perTradeOut);
-
-            // Total costs consumed (use the BEFORE snapshot, multiplied by trade count)
+            // Calculate cost difference (real usage)
             StringBuilder costBuilder = new StringBuilder();
-            for (ItemStack ing : inputSnapshot) {
-                costBuilder.append((ing.getAmount() * tradeCount))
-                        .append("x ")
-                        .append(prettyItemName(ing.getType()))
-                        .append(", ");
+            for (Material mat : beforeCost.keySet()) {
+                int before = beforeCost.getOrDefault(mat, 0);
+                int after = afterCost.getOrDefault(mat, 0);
+                int used = Math.max(0, before - after);
+                if (used > 0) {
+                    costBuilder.append(used)
+                            .append("x ")
+                            .append(prettyItemName(mat))
+                            .append(", ");
+                }
             }
             String costs = costBuilder.length() > 2
                     ? costBuilder.substring(0, costBuilder.length() - 2)
