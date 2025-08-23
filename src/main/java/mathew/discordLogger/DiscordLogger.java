@@ -446,7 +446,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
 
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         queueDiscord("trade",
-                "🤝 " + Bold(player.getName()) + " ba yek, "+ Bold(villagerType) + Bold(coords) +  " trade kard va " + Bold(resultName) + " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
+                "🤝 " + Bold(player.getName()) + " ba yek, "+ Bold(villagerType) + " dar " + Bold(coords) +  " trade kard va " + Bold(resultName) + " ra da ezaye " + " → " + Bold(costs) + " gereft " + Bold(" [" + time + "]")
         );
     }
 
