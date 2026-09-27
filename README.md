@@ -67,6 +67,8 @@ Chat messages are also forwarded:
 [15:10:42] 💬 PlayerName: Hello everyone!
 ```
 
+*its corrently on finglish which is combination of english and farsi but im working on a english version too.
+
 ## ⚙️ Configuration
 
 Webhook URLs are configured in the plugin's configuration file.
@@ -324,6 +326,7 @@ Potential future improvements:
 * [ ] Configurable flush interval
 * [ ] Rich Discord embeds with player/world information
 * [ ] Support for additional Minecraft server platforms
+* [ ] add multi language support
 
 ---
 
