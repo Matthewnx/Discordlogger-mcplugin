@@ -416,6 +416,7 @@ public class DiscordLogger extends JavaPlugin implements Listener {
                         " be " + Bold(weather) + " taghir kard " + " " + Bold("[" + time + "]")
         );
     }
+
     @EventHandler
     public void onItemBreak(PlayerItemBreakEvent e) {
         Player player = e.getPlayer();
